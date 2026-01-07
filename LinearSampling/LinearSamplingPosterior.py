@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 import tqdm
 import matplotlib.pyplot as plt
+import transformers # Ensure transformers is imported for type checking
 
 class LinearSamplingPosterior:
     def __init__(self, network, precision='double'):
@@ -209,7 +210,10 @@ class LinearSamplingPosterior:
                 pbar_inner = train_loader
 
             for x,y in pbar_inner:
-                x, y = x.to(device=self.device, non_blocking=True, dtype=self.dtype), y.to(device=self.device, non_blocking=True)
+                if isinstance(x, transformers.tokenization_utils_base.BatchEncoding):
+                    x, y = x.to(device=self.device), y.to(device=self.device)
+                else:
+                    x, y = x.to(device=self.device, non_blocking=True, dtype=self.dtype), y.to(device=self.device, non_blocking=True)
 
                 # Compute gradient
                 flin, g, resid = self.compute_gradient(x, y, self.theta)
