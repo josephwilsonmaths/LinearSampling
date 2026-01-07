@@ -58,14 +58,14 @@ class CrossEntropyPosterior(LinearSamplingPosterior):
 
 
 class LeastSquaresLogitsPosterior(LinearSamplingPosterior):
-    def __init__(self, kernel, network, precision='single'):
+    def __init__(self, kernel, network, precision='single', feature_extractor=None, num_features=None, num_outputs=None):
         super().__init__(network, precision)
         self.kernel = kernel
 
         if self.kernel == 'ntk':
             self.kernel_function = NeuralTangentKernelSampler(self.network, self.dtype)
         elif self.kernel == 'ck':
-            self.kernel_function = ConjugateKernelSampler(self.network, self.dtype)
+            self.kernel_function = ConjugateKernelSampler(self.network, self.dtype, feature_extractor, num_features, num_outputs)
         else:
             raise ValueError('Invalid kernel type. Options are "ntk" or "ck".')
         

@@ -86,24 +86,32 @@ class NeuralTangentKernelSampler(object):
     
 
 class ConjugateKernelSampler(object):
-    def __init__(self, network, dtype):
+    def __init__(self, network, dtype='torch.float32', feature_extractor = None, num_features=None, num_outputs=None):
         self.network = network
         self.device = next(network.parameters()).device
         self.dtype = dtype
         self.params = {k: v.detach() for k, v in self.network.named_parameters()} # dict of parameters
 
         self.params = tuple(self.network.parameters())
-        child_list = list(self.network.children())
-        if len(child_list) > 1:
-            child_list = child_list
-        elif len(child_list) == 1:
-            child_list = child_list[0]
-        first_layers = child_list[:-1]
-        final_layer = child_list[-1]
-        self.llp = list(final_layer.parameters())[0].size().numel()
-        self.num_output = list(final_layer.parameters())[0].shape[0]
-        self.features = torch.nn.Sequential(*first_layers)
-        self.llp = list(self.features.parameters())[-1].shape[0]
+
+        if feature_extractor is None:
+            child_list = list(self.network.children())
+            if len(child_list) > 1:
+                child_list = child_list
+            elif len(child_list) == 1:
+                child_list = child_list[0]
+            first_layers = child_list[:-1]
+            final_layer = child_list[-1]
+            self.llp = list(final_layer.parameters())[0].size().numel()
+            self.num_output = list(final_layer.parameters())[0].shape[0]
+            self.features = torch.nn.Sequential(*first_layers)
+            self.llp = list(self.features.parameters())[-1].shape[0]
+
+        else:
+            self.features = feature_extractor
+            self.llp = num_features
+            self.num_output = num_outputs
+            
         self.theta_t = util.flatten(self.params)[-(self.llp*self.num_output+self.num_output):-self.num_output]
     
     def sample_theta(self, S, scale):
