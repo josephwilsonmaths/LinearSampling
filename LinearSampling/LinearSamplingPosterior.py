@@ -144,6 +144,7 @@ class LinearSamplingPosterior:
               extra_verbose = False, 
               save_weights = None,
               plot_loss_dir = None,
+              collate_fn = None,
               average = 'running'):
         
         '''
@@ -165,7 +166,7 @@ class LinearSamplingPosterior:
         '''
         
         # Create data loader
-        train_loader = DataLoader(train,bs)    
+        train_loader = DataLoader(train,bs, collate_fn=collate_fn)    
 
         # Creat full-batch Jacobian if batch size equals training set size
         if bs == len(train):
@@ -283,7 +284,12 @@ class LinearSamplingPosterior:
         f_lin = self.compute_flin(x) # N x C x S, should be detached from computation graph
         return f_lin.permute(2,0,1) * self.scale_cal # S x N x C
     
-    def test(self, test, bs=50, network_mean=False, verbose=False):
+    def test(self, 
+            test, 
+            bs=50, 
+            network_mean=False, 
+            collate_fn = None,
+            verbose=False):
         '''
         Compute predictions on test dataset for Linear Sampling posterior.
         test: test dataset
@@ -293,7 +299,7 @@ class LinearSamplingPosterior:
         '''
 
         # Create data loader
-        test_loader = DataLoader(test, bs)
+        test_loader = DataLoader(test, bs, collate_fn=collate_fn)
         
         # Concatenate predictions
         preds = []
