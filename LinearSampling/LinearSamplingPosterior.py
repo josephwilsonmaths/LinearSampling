@@ -327,7 +327,11 @@ class LinearSamplingPosterior:
 
             # Compute network mean predictions
             if network_mean:
-                net_preds.append(self.network(x.to(device=self.device, dtype=self.dtype)).detach()) # N x C
+                if isinstance(x, transformers.tokenization_utils_base.BatchEncoding):
+                    x = x.to(device=self.device)
+                else:
+                    x = x.to(device=self.device, dtype=self.dtype)
+                net_preds.append(self.network(x).detach()) # N x C
 
         # Concatenate predictions
         predictions = torch.cat(preds,dim=1) # S x N x C
