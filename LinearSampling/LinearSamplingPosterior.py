@@ -336,7 +336,7 @@ class LinearSamplingPosterior:
         else:
             return predictions
         
-    def UncertaintyPrediction(self, test, bs, network_mean=False, verbose=False):
+    def UncertaintyPrediction(self, test, bs, network_mean=False, collate_fn = None, verbose=False):
         '''
         Compute mean and variance of predictions on test dataset for Linear Sampling posterior.
         test: test dataset
@@ -345,7 +345,7 @@ class LinearSamplingPosterior:
         verbose: print progress bar
         '''
 
-        predictions = self.test(test, bs, network_mean, verbose) # Should be detached from computation graph, S x N x C or (S x N x C, N x C)
+        predictions = self.test(test, bs, network_mean, collate_fn, verbose) # Should be detached from computation graph, S x N x C or (S x N x C, N x C)
 
         if not network_mean:
             probits = predictions.softmax(dim=-1)
