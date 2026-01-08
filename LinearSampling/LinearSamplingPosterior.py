@@ -284,7 +284,10 @@ class LinearSamplingPosterior:
         x: N x D
         returns: S x N x C
         '''
-        x = x.to(device=self.device, dtype=self.dtype)
+        if isinstance(x, transformers.tokenization_utils_base.BatchEncoding):
+            x = x.to(device=self.device)
+        else:
+            x = x.to(device=self.device, dtype=self.dtype)
         f_lin = self.compute_flin(x) # N x C x S, should be detached from computation graph
         return f_lin.permute(2,0,1) * self.scale_cal # S x N x C
     
