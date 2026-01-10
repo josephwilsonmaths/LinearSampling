@@ -82,12 +82,14 @@ class NeuralTangentKernelSampler(object):
         v: N x C x S
         Returns: P x S
         '''
+        print(f'memory before vjp: {torch.cuda.memory_allocated()/1e9} GB')
         if J is not None:
             Jac, F = J # N x C x P, N x C
             vjp = torch.einsum('ncp,ncs->ps',Jac,v) # P x S
         else:
             projT = torch.vmap(self.vjp_single, (2,None,None))(v,self.params,x)
             vjp = [j.detach().flatten(1) for j in projT[0].values()]
+            print(f'memory before cat: {torch.cuda.memory_allocated()/1e9} GB')
             vjp = torch.cat(vjp,dim=1).detach().T # P x S
         return vjp
     
