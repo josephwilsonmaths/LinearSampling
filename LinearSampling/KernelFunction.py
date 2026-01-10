@@ -2,7 +2,8 @@ import torch
 from torch.func import functional_call, vmap, jacrev
 import LinearSampling.util as util
 import copy
-    
+import transformers # Ensure transformers is imported for type checking    
+from torch.nn.attention import SDPBackend, sdpa_kernel
 
 class NeuralTangentKernelSampler(object):
     def __init__(self, network, dtype):
@@ -28,8 +29,13 @@ class NeuralTangentKernelSampler(object):
 
     def jvp_single(self,theta,params,x):
         dparams = util._dub(util.unflatten_like(theta, self.params.values()), self.params)
-        f, proj = torch.func.jvp(lambda param: self.fnet(param, x),
-                                (params,), (dparams,))
+        if isinstance(x, transformers.tokenization_utils_base.BatchEncoding):
+            with sdpa_kernel([SDPBackend.MATH, SDPBackend.EFFICIENT_ATTENTION]):
+                f, proj = torch.func.jvp(lambda param: self.fnet(param, x),
+                                        (params,), (dparams,))
+        else:
+            f, proj = torch.func.jvp(lambda param: self.fnet(param, x),
+                                    (params,), (dparams,))
         f, proj = f.detach(), proj.detach()
         return f, proj
     
