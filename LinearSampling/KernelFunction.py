@@ -29,7 +29,7 @@ class NeuralTangentKernelSampler(object):
 
     def jvp_single(self,theta,params,x):
         dparams = util._dub(util.unflatten_like(theta, self.params.values()), self.params)
-        print(f'memory before jvp: {torch.cuda.memory_allocated()/1e9} GB')
+        # print(f'memory before jvp: {torch.cuda.memory_allocated()/1e9} GB')
         if isinstance(x, transformers.tokenization_utils_base.BatchEncoding):
             with sdpa_kernel([SDPBackend.MATH]):
                 f, proj = torch.func.jvp(lambda param: self.fnet(param, x),
