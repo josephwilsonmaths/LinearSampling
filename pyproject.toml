@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "LinearSampling"
-version = "1.4111"
+version = "1.42"
 authors = [
     { name="ANON", email="anon@edu.au" },
 ]

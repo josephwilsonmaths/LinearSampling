@@ -91,6 +91,8 @@ class NeuralTangentKernelSampler(object):
             vjp = [j.detach().flatten(1) for j in projT[0].values()]
             print(f'memory before cat: {torch.cuda.memory_allocated()/1e9} GB')
             vjp = torch.cat(vjp,dim=1).detach().T # P x S
+            print(f'vjp shape: {vjp.shape}')
+            print(f'memory after cat: {torch.cuda.memory_allocated()/1e9} GB')
         return vjp
     
 
