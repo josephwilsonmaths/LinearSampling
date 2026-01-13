@@ -165,7 +165,9 @@ class LinearSamplingPosterior:
         plot_loss_dir: directory to save loss plots
         average: averaging method for metrics ('running' or 'moving')
         '''
-        
+        if self.device.type == 'cuda':
+            torch.cuda.reset_peak_memory_stats()
+
         # Create data loader
         train_loader = DataLoader(train,bs, collate_fn=collate_fn)    
 
