@@ -101,3 +101,45 @@ class LeastSquaresLogitsPosterior(LinearSamplingPosterior):
     
     def compute_flin(self, x):
         return self.kernel_function.compute_flin(x, self.theta, self.J)
+    
+
+class LeastSquaresRegressionPosterior(LinearSamplingPosterior):
+    def __init__(self, kernel, network, precision='single', feature_extractor=None, num_features=None):
+        super().__init__(network, precision)
+        self.kernel = kernel
+
+        if self.kernel == 'ntk':
+            self.kernel_function = NeuralTangentKernelSampler(self.network, self.dtype)
+        elif self.kernel == 'ck':
+            self.kernel_function = ConjugateKernelSampler(self.network, self.dtype, feature_extractor, num_features)
+        else:
+            raise ValueError('Invalid kernel type. Options are "ntk" or "ck".')
+        
+        self.lossfunction = 'least_squares_regression'
+
+    def sample_theta(self, S, gamma):
+        return self.kernel_function.sample_theta(S, gamma)
+
+    def instantiate_lossdict(self):
+        loss_dict = {'sq loss': [],
+                    'grad norm': []}
+        return loss_dict
+    
+    def compute_loss(self, f, resid, y, g):
+        N,C,S = f.shape
+        sq_loss = self.compute_squared_error(f - y.reshape(N,C,1))  # f is N x C, y must be N x C
+        grad_norm = torch.norm(g).item()
+        loss_vals = {'sq loss': sq_loss,
+                     'grad norm': grad_norm}
+        return loss_vals
+
+    def compute_gradient(self, x, y, theta):
+        f_nlin, proj = self.kernel_function.jvp(x, theta, self.J) # N x C x S, should be detached from computation graph
+        f_lin = proj + f_nlin.unsqueeze(2) # N x C x S, should be detached from computation graph 
+        N, C, _ = proj.shape
+        resid = f_lin - y.reshape(N,C,1)
+        g = self.kernel_function.vjp(x, resid, self.J).detach() / (N*C) # P x S, should be detached from computation graph
+        return f_lin, g, proj
+    
+    def compute_flin(self, x):
+        return self.kernel_function.compute_flin(x, self.theta, self.J)
