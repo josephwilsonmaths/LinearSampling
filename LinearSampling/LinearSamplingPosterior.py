@@ -382,7 +382,7 @@ class LinearSamplingPosterior:
 
         def ece_eval(gamma):
             scaled_nuqls_predictions = val_predictions * gamma
-            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
+            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(0),scaled_nuqls_predictions.var(0),11)
             return torch.mean(torch.square(obs_map - predicted)).item()
 
         scale = utils.ternary_search(f = ece_eval,
