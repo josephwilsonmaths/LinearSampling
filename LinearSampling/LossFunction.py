@@ -55,6 +55,9 @@ class CrossEntropyPosterior(LinearSamplingPosterior):
     
     def compute_flin(self, x):
         return self.kernel_function.compute_flin(x, self.theta, self.J)
+    
+    def compute_full_jacobian(self, x):
+        return self.kernel_function.compute_full_jacobian(x)
 
 
 class LeastSquaresLogitsPosterior(LinearSamplingPosterior):
@@ -101,6 +104,9 @@ class LeastSquaresLogitsPosterior(LinearSamplingPosterior):
     
     def compute_flin(self, x):
         return self.kernel_function.compute_flin(x, self.theta, self.J)
+    
+    def compute_full_jacobian(self, x):
+        return self.kernel_function.compute_full_jacobian(x)
     
 
 class LeastSquaresRegressionPosterior(LinearSamplingPosterior):

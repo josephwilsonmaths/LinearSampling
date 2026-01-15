@@ -11,6 +11,7 @@ class NeuralTangentKernelSampler(object):
         self.device = next(network.parameters()).device
         self.dtype = dtype
         self.params = {k: v.detach() for k, v in self.network.named_parameters()} # dict of parameters
+        self.theta_t = util.flatten(tuple(self.network.parameters())).detach()
 
     def fnet(self, params, x):
         return functional_call(self.network, params, x)
@@ -134,7 +135,7 @@ class ConjugateKernelSampler(object):
         return vjp
     
     def compute_full_jacobian(self, x):
-        J = self.ck(x).detach() # N x LLP
+        J = self.features(x).detach() # N x LLP
         F = self.network(x).detach()
         return (J, F)
     
