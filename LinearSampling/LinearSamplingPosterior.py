@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 import tqdm
 import matplotlib.pyplot as plt
 import transformers # Ensure transformers is imported for type checking
+import LinearSampling.util as utils
 
 class LinearSamplingPosterior:
     def __init__(self, network, precision='double'):
@@ -367,5 +368,23 @@ class LinearSamplingPosterior:
 
         return mean_prob.detach().cpu(), var_prob.detach().cpu()
     
-    def HyperparameterTuning(self):
-        raise NotImplementedError("Hyperparameter tuning not implemented for Linear Sampling Posterior.")
+    def HyperparameterTuning(self, validation, bs, left, right, its, verbose=False):
+        val_predictions = self.test(validation, bs)
+
+        calibration_test_loader_val = DataLoader(validation,len(validation))
+        _, val_y = next(iter(calibration_test_loader_val))
+
+        def ece_eval(gamma):
+            scaled_nuqls_predictions = val_predictions * gamma
+            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
+            return torch.mean(torch.square(obs_map - predicted)).item()
+
+        scale = utils.ternary_search(f = ece_eval,
+                               left=left,
+                               right=right,
+                               its=its,
+                               verbose=verbose,
+                               input_name="scale",
+                               output_name="ECE")
+
+        self.scale_cal = scale
