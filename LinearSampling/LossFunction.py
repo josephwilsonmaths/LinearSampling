@@ -20,18 +20,18 @@ class CrossEntropyPosterior(LinearSamplingPosterior):
         return self.kernel_function.sample_theta(S, gamma)
 
     def instantiate_lossdict(self):
-        loss_dict = {'ce loss': [],
+        loss_dict = {'ce_loss': [],
                     'accuracy': [],
-                    'grad norm': []}
+                    'grad_norm': []}
         return loss_dict
     
     def compute_loss(self, f, resid, y, g):
         ce_loss = self.compute_cross_entropy(f, y)
         accuracy = self.compute_accuracy(f, y)
         grad_norm = torch.norm(g).item()
-        loss_vals = {'ce loss': ce_loss,
+        loss_vals = {'ce_loss': ce_loss,
                      'accuracy': accuracy,
-                     'grad norm': grad_norm}
+                     'grad_norm': grad_norm}
         return loss_vals
     
     def compute_gradient(self, x, y, theta):
@@ -75,10 +75,10 @@ class LeastSquaresLogitsPosterior(LinearSamplingPosterior):
         return self.kernel_function.sample_theta(S, gamma)
 
     def instantiate_lossdict(self):
-        loss_dict = {'sq loss': [],
-                    'ce loss': [],
+        loss_dict = {'sq_loss': [],
+                    'ce_loss': [],
                     'accuracy': [],
-                    'grad norm': []}
+                    'grad_norm': []}
         return loss_dict
     
     def compute_loss(self, f, resid, y, g):
@@ -86,10 +86,10 @@ class LeastSquaresLogitsPosterior(LinearSamplingPosterior):
         ce_loss = self.compute_cross_entropy(f, y)
         accuracy = self.compute_accuracy(f, y)
         grad_norm = torch.norm(g).item()
-        loss_vals = {'sq loss': sq_loss,
-                     'ce loss': ce_loss,
+        loss_vals = {'sq_loss': sq_loss,
+                     'ce_loss': ce_loss,
                      'accuracy': accuracy,
-                     'grad norm': grad_norm}
+                     'grad_norm': grad_norm}
         return loss_vals
 
     def compute_gradient(self, x, y, theta):
@@ -121,16 +121,16 @@ class LeastSquaresRegressionPosterior(LinearSamplingPosterior):
         return self.kernel_function.sample_theta(S, gamma)
 
     def instantiate_lossdict(self):
-        loss_dict = {'sq loss': [],
-                    'grad norm': []}
+        loss_dict = {'sq_loss': [],
+                    'grad_norm': []}
         return loss_dict
     
     def compute_loss(self, f, resid, y, g):
         N,C,S = f.shape
         sq_loss = self.compute_squared_error(f - y.reshape(N,C,1))  # f is N x C, y must be N x C
         grad_norm = torch.norm(g).item()
-        loss_vals = {'sq loss': sq_loss,
-                     'grad norm': grad_norm}
+        loss_vals = {'sq_loss': sq_loss,
+                     'grad_norm': grad_norm}
         return loss_vals
 
     def compute_gradient(self, x, y, theta):
