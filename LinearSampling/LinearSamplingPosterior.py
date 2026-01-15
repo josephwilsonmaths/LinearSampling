@@ -147,7 +147,8 @@ class LinearSamplingPosterior:
               save_weights = None,
               plot_loss_dir = None,
               collate_fn = None,
-              average = 'running'):
+              average = 'running',
+              rank_restriction = None):
         
         '''
         Train linear sampling posterior using SGD with momentum
@@ -165,6 +166,7 @@ class LinearSamplingPosterior:
         save_weights: path to save weights
         plot_loss_dir: directory to save loss plots
         average: averaging method for metrics ('running' or 'moving')
+        rank_restriction: if not None, restrict Jacobian to specified rank for research purposes
         '''
         if self.device.type == 'cuda':
             torch.cuda.reset_peak_memory_stats()
@@ -176,6 +178,14 @@ class LinearSamplingPosterior:
         if bs >= len(train):
             X,_ = next(iter(train_loader))
             self.J = self.compute_full_jacobian(X.to(device=self.device, dtype=self.dtype))
+
+            # Apply rank restriction if specified, for research purposes.
+            if rank_restriction is not None:
+                U, S_vals, Vh = torch.linalg.svd(self.J[0], full_matrices=False)
+                S_restricted = torch.zeros_like(S_vals)
+                S_restricted[:rank_restriction] = S_vals[:rank_restriction]
+                J_restricted = (U * S_restricted.unsqueeze(0)) @ Vh
+                self.J = (J_restricted, self.J[1])
         else:
             self.J = None
 
