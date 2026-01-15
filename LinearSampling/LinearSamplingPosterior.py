@@ -61,7 +61,7 @@ class LinearSamplingPosterior:
         '''
         N,C,S = residual.shape
         l = (torch.square(residual).sum()  / (N * C * S)).detach()
-        return l.mean().item()
+        return l.item()
 
     def compute_accuracy(self, f_lin, y):
         ''' Compute accuracy for classification tasks 
@@ -173,7 +173,7 @@ class LinearSamplingPosterior:
         train_loader = DataLoader(train,bs, collate_fn=collate_fn)    
 
         # Creat full-batch Jacobian if batch size equals training set size
-        if bs == len(train):
+        if bs >= len(train):
             X,_ = next(iter(train_loader))
             self.J = self.compute_full_jacobian(X.to(device=self.device, dtype=self.dtype))
         else:
