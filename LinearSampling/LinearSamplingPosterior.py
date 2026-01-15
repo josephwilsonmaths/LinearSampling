@@ -292,7 +292,7 @@ class LinearSamplingPosterior:
         else:
             x = x.to(device=self.device, dtype=self.dtype)
         f_lin = self.compute_flin(x) # N x C x S, should be detached from computation graph
-        return f_lin.permute(2,0,1) * self.scale_cal # S x N x C
+        return f_lin.permute(2,0,1) # S x N x C
     
     def test(self, 
             test, 
@@ -349,24 +349,30 @@ class LinearSamplingPosterior:
     def UncertaintyPrediction(self, test, bs, network_mean=False, collate_fn = None, verbose=False):
         '''
         Compute mean and variance of predictions on test dataset for Linear Sampling posterior.
+
+        scale by self.scale_cal for variance only.
+
         test: test dataset
         bs: batch size for testing
         network_mean: whether to use network for mean predictions
         verbose: print progress bar
         '''
-
         predictions = self.test(test, bs, network_mean, collate_fn, verbose) # Should be detached from computation graph, S x N x C or (S x N x C, N x C)
 
         if not network_mean:
-            probits = predictions.softmax(dim=-1)
-            mean_prob = probits.mean(0)
-            var_prob = probits.var(0)
+            if not self.__class__.__name__ == 'LeastSquaresRegressionPosterior':
+                predictions = predictions.softmax(dim=-1)
+            mean = predictions.mean(0)
+            var = (predictions * self.scale_cal).var(0)
         else:
             linear_predictions, net_predictions = predictions
-            mean_prob = net_predictions.softmax(dim=-1)
-            var_prob = linear_predictions.softmax(dim=-1).var(0)
+            if not self.__class__.__name__ == 'LeastSquaresRegressionPosterior':
+                linear_predictions = linear_predictions.softmax(dim=-1)
+                net_predictions = net_predictions.softmax(dim=-1)
+            mean = net_predictions
+            var = (linear_predictions * self.scale_cal).var(0)
 
-        return mean_prob.detach().cpu(), var_prob.detach().cpu()
+        return mean.detach().cpu(), var.detach().cpu()
     
     def HyperparameterTuning(self, validation, bs, left, right, its, verbose=False):
         val_predictions = self.test(validation, bs)
