@@ -148,7 +148,7 @@ plt.show()
 ```
 
 <p align='center'>
-  <img src="examples/images/UncertaintyComparison_glm.pdf" width="640" height="480">
+  <img src="examples/images/UncertaintyComparison_glm-1.png.pdf" width="640" height="480">
 </p>
 
 ### Classification (TODO)
