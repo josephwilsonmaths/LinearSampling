@@ -5,6 +5,7 @@ import tqdm
 import matplotlib.pyplot as plt
 import transformers # Ensure transformers is imported for type checking
 import LinearSampling.util as utils
+import os
 
 class LinearSamplingPosterior:
     def __init__(self, network, precision='double'):
@@ -132,6 +133,13 @@ class LinearSamplingPosterior:
             ax.grid(True, alpha=0.3)
 
         plt.tight_layout()
+
+        if plot_loss_dir[-1] != '/':
+                plot_loss_dir += '/'
+
+        if not os.path.exists(plot_loss_dir):
+            os.makedirs(plot_loss_dir)
+
         plt.savefig(plot_loss_dir + f"{self.methodname}_loss_plot.pdf", format='pdf',bbox_inches='tight')
 
     def train(self, 
@@ -278,6 +286,7 @@ class LinearSamplingPosterior:
         self.J = None
 
         if plot_loss_dir is not None:
+
             self.plot_loss_metrics(loss_dict, plot_loss_dir)
 
         return self.metric_reporting(loss_dict, average='running')
