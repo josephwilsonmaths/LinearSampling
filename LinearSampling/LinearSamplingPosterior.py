@@ -329,6 +329,21 @@ class LinearSamplingPosterior:
 
         # Create data loader
         test_loader = DataLoader(test, bs, collate_fn=collate_fn)
+
+        # Creat full-batch Jacobian if batch size equals training set size
+        if bs >= len(test):
+            X,_ = next(iter(test_loader))
+            self.J = self.compute_full_jacobian(X.to(device=self.device, dtype=self.dtype))
+
+            # Apply rank restriction if specified, for research purposes.
+            if rank_restriction is not None:
+                U, S_vals, Vh = torch.linalg.svd(self.J[0], full_matrices=False)
+                S_restricted = torch.zeros_like(S_vals)
+                S_restricted[:rank_restriction] = S_vals[:rank_restriction]
+                J_restricted = (U * S_restricted.unsqueeze(0)) @ Vh
+                self.J = (J_restricted, self.J[1])
+        else:
+            self.J = None
         
         # Concatenate predictions
         preds = []
@@ -397,7 +412,9 @@ class LinearSamplingPosterior:
         return mean.detach().cpu(), var.detach().cpu()
     
     def HyperparameterTuning(self, validation, bs, left, right, its, task = None, network_mean = False, verbose=False):
-        val_predictions = self.test(validation, bs, network_mean=network_mean)
+        preds = self.test(validation, bs, network_mean=network_mean)
+        val_predictions = preds[0] if network_mean else preds
+        mean_preds = preds[1] if network_mean else val_predictions.mean(0)
 
         calibration_test_loader_val = DataLoader(validation,len(validation))
         _, val_y = next(iter(calibration_test_loader_val))
@@ -407,12 +424,12 @@ class LinearSamplingPosterior:
 
         def ece_eval(gamma):
             scaled_nuqls_predictions = val_predictions * gamma
-            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(0),scaled_nuqls_predictions.var(0),11)
+            obs_map, predicted = utils.calibration_curve_r(val_y,mean_preds,scaled_nuqls_predictions.var(0),11)
             return torch.mean(torch.square(obs_map - predicted)).item()
         
         def lppd_eval(gamma):
             scaled_predictions = val_predictions * gamma
-            probs = utils.multiclass_probit_probs(scaled_predictions.mean(0), scaled_predictions.var(0))
+            probs = utils.multiclass_probit_probs(mean_preds, scaled_predictions.var(0))
             logp = torch.log(probs[torch.arange(len(val_y), device=val_y.device), val_y])
             return logp.mean().item()
         
