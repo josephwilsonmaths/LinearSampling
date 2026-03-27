@@ -365,7 +365,7 @@ class LinearSamplingPosterior:
         else:
             return predictions
         
-    def UncertaintyPrediction(self, test, bs, network_mean=False, collate_fn = None, verbose=False):
+    def UncertaintyPrediction(self, test, bs, network_mean=False, scale = False, collate_fn = None, verbose=False):
         '''
         Compute mean and variance of predictions on test dataset for Linear Sampling posterior.
 
@@ -374,42 +374,63 @@ class LinearSamplingPosterior:
         test: test dataset
         bs: batch size for testing
         network_mean: whether to use network for mean predictions
+        scale: whether to scale the variance by self.scale_cal
         verbose: print progress bar
         '''
         predictions = self.test(test, bs, network_mean, collate_fn, verbose) # Should be detached from computation graph, S x N x C or (S x N x C, N x C)
+        sigma2 = (self.scale_cal if scale else 1.0) # Scale value for predictions
+
 
         if not network_mean:
             if not self.__class__.__name__ == 'LeastSquaresRegressionPosterior':
                 predictions = predictions.softmax(dim=-1)
             mean = predictions.mean(0)
-            var = (predictions * self.scale_cal).var(0)
+            var = (predictions * sigma2).var(0)
         else:
             linear_predictions, net_predictions = predictions
             if not self.__class__.__name__ == 'LeastSquaresRegressionPosterior':
                 linear_predictions = linear_predictions.softmax(dim=-1)
                 net_predictions = net_predictions.softmax(dim=-1)
             mean = net_predictions
-            var = (linear_predictions * self.scale_cal).var(0)
+            var = (linear_predictions * sigma2).var(0)
 
         return mean.detach().cpu(), var.detach().cpu()
     
-    def HyperparameterTuning(self, validation, bs, left, right, its, verbose=False):
-        val_predictions = self.test(validation, bs)
+    def HyperparameterTuning(self, validation, bs, left, right, its, task = None, network_mean = False, verbose=False):
+        val_predictions = self.test(validation, bs, network_mean=network_mean)
 
         calibration_test_loader_val = DataLoader(validation,len(validation))
         _, val_y = next(iter(calibration_test_loader_val))
+
+        if task is None:
+            raise ValueError("Task must be specified for hyperparameter tuning. Options are ['ece', 'lppd']")
 
         def ece_eval(gamma):
             scaled_nuqls_predictions = val_predictions * gamma
             obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(0),scaled_nuqls_predictions.var(0),11)
             return torch.mean(torch.square(obs_map - predicted)).item()
+        
+        def lppd_eval(gamma):
+            scaled_predictions = val_predictions * gamma
+            probs = utils.multiclass_probit_probs(scaled_predictions.mean(0), scaled_predictions.var(0))
+            logp = torch.log(probs[torch.arange(len(val_y), device=val_y.device), val_y])
+            return logp.mean().item()
+        
+        if task == 'ece':
+            f = ece_eval
+            input_name = "scale"
+            output_name = "ECE"
+        elif task == 'lppd':
+            f = lppd_eval
+            input_name = "scale"
+            output_name = "LPPD"
 
-        scale = utils.ternary_search(f = ece_eval,
+        scale = utils.ternary_search(f = f,
                                left=left,
                                right=right,
                                its=its,
                                verbose=verbose,
-                               input_name="scale",
-                               output_name="ECE")
+                               input_name=input_name,
+                               output_name=output_name)
 
         self.scale_cal = scale

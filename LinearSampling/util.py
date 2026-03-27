@@ -138,3 +138,17 @@ def varroc(testing_function, test_dataloader, ood_test_dataloader, verbose=False
 def sort_preds_index(pi,yi):
     return (pi.argmax(1) == yi)
 
+def multiclass_probit_probs(map_logits, logit_var, eps=1e-8):
+    """
+    Approximate predictive class probabilities from Gaussian logits using
+    class-wise multi-class probit scaling.
+
+    map_logits: N x C MAP logits
+    logit_var: N x C predictive logit variances
+    """
+    var = torch.clamp(logit_var, min=0.0)
+    kappa = torch.rsqrt(1.0 + (torch.pi / 8.0) * var)
+    scaled_logits = map_logits * kappa
+    probs = torch.softmax(scaled_logits, dim=1)
+    return torch.clamp(probs, min=eps, max=1.0)
+
