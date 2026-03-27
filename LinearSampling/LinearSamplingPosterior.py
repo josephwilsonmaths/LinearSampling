@@ -438,7 +438,7 @@ class LinearSamplingPosterior:
             input_name = "scale"
             output_name = "ECE"
         elif task == 'lppd':
-            f = lppd_eval
+            f = lambda gamma: -lppd_eval(gamma)
             input_name = "scale"
             output_name = "LPPD"
 
