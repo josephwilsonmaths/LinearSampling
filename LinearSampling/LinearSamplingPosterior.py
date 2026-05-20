@@ -318,7 +318,8 @@ class LinearSamplingPosterior:
             bs=50, 
             network_mean=False, 
             collate_fn = None,
-            verbose=False):
+            verbose=False,
+            rank_restriction = None):
         '''
         Compute predictions on test dataset for Linear Sampling posterior.
         test: test dataset

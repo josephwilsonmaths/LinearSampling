@@ -136,6 +136,8 @@ class ConjugateKernelSampler(object):
     
     def compute_full_jacobian(self, x):
         J = self.features(x).detach() # N x LLP
+        if len(J.shape) > 2:
+            J = J.flatten(1) # May have some extra dimensions, flatten to N x LLP
         F = self.network(x).detach()
         return (J, F)
     
@@ -150,6 +152,8 @@ class ConjugateKernelSampler(object):
             Jac, F = J # N x LLP, N x C
         else:
             Jac = self.features(x).detach() # N x LLP
+            if len(Jac.shape) > 2:
+                Jac = Jac.flatten(1) # May have some extra dimensions, flatten to N x LLP
             F = self.network(x).detach() # N x C
 
         V = (theta - self.theta_t.unsqueeze(1)).reshape(self.num_output, self.llp, -1).permute(1,0,2) # C*LLP x S -> C x LLP x S -> LLP x C x S
@@ -163,6 +167,8 @@ class ConjugateKernelSampler(object):
 
         else:
             Jac = self.features(x).detach() # N x LLP
+            if len(Jac.shape) > 2:
+                Jac = Jac.flatten(1) # May have some extra dimensions, flatten to N x LLP
 
         return torch.einsum('pn,ncs->pcs',Jac.T,V).detach().permute(1,0,2).flatten(0,1) # LLP x C x S -> C x LLP x S -> C*LLP x S
     
